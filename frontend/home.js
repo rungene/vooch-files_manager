@@ -66,4 +66,48 @@ document.addEventListener('DOMContentLoaded', async () => {
     console.error('Error retrieving user email:', error);
     errorMessage.textContent = 'An error occurred while retrieving user email';
   }
+
+  const fileUploadForm = document.getElementById('file-upload-form');
+  const fileName = document.getElementById('file-name').value;
+  const fileType = document.getElementById('file-type').value;
+  const parentId = document.getElementById('parent-id').value || 0;
+  const isPublic = document.getElementById('is-public').checked;
+  const fileInput = document.getElementById('file-input');
+  const file = fileInput.files[0];
+  fileUploadForm.addEventListener('submit', async () => {
+    event.preventDefault();
+    const reader = new FileReader();
+    reader.onloaded = async funtion() {
+      const data = reader.result.split(',')[1];
+
+      // Create a formData object, append form fields
+      const formData = new FormData();
+      formData.append('name', fileName);
+      formData.append('type', fileType);
+      formData.append('parentId', parentId);
+      formData.append('isPublic', isPublic);
+      formData.append('data', fileType === 'file' || fileType === 'image' ? data : null);
+
+      // Make POST request to the server with the formData object
+      try {
+        const response = await fetch('/files', {
+          method: 'POST',
+          headers: {
+            'X-Token': authToken,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            formData,
+          )}
+        });
+
+        // Handle server response
+        const data = await response.json();
+      } catch (error) {
+      
+      }
+    };
+    // Read the file as Data URL triggering the onloaded event(above)
+    reader.readAsDataURL(file);
+  });
 });

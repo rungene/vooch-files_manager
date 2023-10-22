@@ -4,20 +4,43 @@
 <head>
   <title>VOOC</title>
   <link rel="stylesheet" type="text/css" href="css/style.css">
-  <a href='about.html' target='_blank'>About Us!</a>
+</head>
+
+<body>
   <div id="user-info-home">
     <p>User with email: <span id="user-email-home"></span> Logged In Successfully</p>
     <button id="logout-btn">Logout</button>
     <p id="error-message" class="error-message"></p>
   </div>
 
-</head>
-
-<body>
   <div id='main'>
-  <h1>Welcome to VOOC</h1>
+    <h1>Welcome to VOOC</h1>
   </div>
 
-    <script src="home.js"></script>
+  <form id='file-upload-form'>
+    <label for='file-name'>File Name:</label>
+    <input type='text' id='file-name' required><br>
+
+    <label for='file-type'>File Type:</label>
+    <select id='file-type' required>
+      <option value='folder'>Folder</option>
+      <option value='file'>File</option>
+      <option value='image'>Image</option>
+    </select><br>
+
+    <label for='parent-id'>Parent ID:</label>
+    <input type='text' id='parent-id'><br>
+
+    <label for='is-public'>Is Public:</label>
+    <input type='checkbox' id='is-public'><br>
+
+    <label for='file-input'>File Content (Base64 for type=file|image):</label>
+    <input type='file' id='file-input' accept='image/*'><br>
+
+    <button type='submit'>Upload File</button>
+  </form>
+
+  <script src="home.js"></script>
 </body>
+
 </html>
