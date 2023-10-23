@@ -79,13 +79,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   fileUploadForm.addEventListener('submit', async (event) => {
     event.preventDefault();
     const reader = new FileReader();
-    reader.onerror = function (event) {
+    reader.onerror = (event) => {
       // Handle errors here
       switch (event.target.error.code) {
         case event.target.error.NOT_FOUND_ERR:
           console.error('File not found!');
           break;
-        case event.tarhet.error.NOT_READABLE_ERR:
+        case event.target.error.NOT_READABLE_ERR:
           console.error('File is not readbale');
           break;
         case event.target.error.ABORT_ERR:
@@ -97,7 +97,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     };
 
     if (file) {
-      reader.onload = async function () {
+      reader.onload = async () => {
         const base64Data = reader.result.split(',')[1];
 
         // Create a formData object, append form fields
