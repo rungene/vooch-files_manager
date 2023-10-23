@@ -73,39 +73,73 @@ document.addEventListener('DOMContentLoaded', async () => {
   const parentId = document.getElementById('parent-id').value || 0;
   const isPublic = document.getElementById('is-public').checked;
   const fileInput = document.getElementById('file-input');
+  const successMessage = document.getElementById('success-message');
   const file = fileInput.files[0];
-  fileUploadForm.addEventListener('submit', async () => {
+
+  fileUploadForm.addEventListener('submit', async (event) => {
     event.preventDefault();
     const reader = new FileReader();
-    reader.onloaded = async function() {
-      const data = reader.result.split(',')[1];
-
-      // Create a formData object, append form fields
-      const formData = new FormData();
-      formData.append('name', fileName);
-      formData.append('type', fileType);
-      formData.append('parentId', parentId);
-      formData.append('isPublic', isPublic);
-      formData.append('data', fileType === 'file' || fileType === 'image' ? data : null);
-
-      // Make POST request to the server with the formData object
-      try {
-        const response = await fetch('/files', {
-          method: 'POST',
-          headers: {
-            'X-Token': authToken,
-            'Content-Type': 'application/json',
-          },
-          body: formData
-        });
-
-        // Handle server response
-        const data = await response.json();
-      } catch (error) {
-      
+    reader.onerror = function (event) {
+      // Handle errors here
+      switch (event.target.error.code) {
+        case event.target.error.NOT_FOUND_ERR:
+          console.error('File not found!');
+          break;
+        case event.tarhet.error.NOT_READABLE_ERR:
+          console.error('File is not readbale');
+          break;
+        case event.target.error.ABORT_ERR:
+          console.error('Read operation was aborted');
+          break;
+        default:
+          console.error('An error occured while reading the file');
       }
     };
-    // Read the file as Data URL triggering the onloaded event(above)
-    reader.readAsDataURL(file);
+
+    if (file) {
+      reader.onload = async function () {
+        const base64Data = reader.result.split(',')[1];
+
+        // Create a formData object, append form fields
+        const formData = new FormData();
+        formData.append('name', fileName);
+        formData.append('type', fileType);
+        formData.append('parentId', parentId);
+        formData.append('isPublic', isPublic);
+        formData.append('data', fileType === 'file' || fileType === 'image' ? base64Data : null);
+
+        // Make POST request to the server with the formData object
+        try {
+          const response = await fetch('/files', {
+            method: 'POST',
+            headers: {
+              'X-Token': authToken,
+              'Content-Type': 'application/json',
+            },
+            body: formData,
+          });
+
+          // Handle server response
+          const data = await response.json();
+
+          if (response.status === 201) {
+            successMessage.textContent = 'File uploaded sucessfully';
+            errorMessage.textContent = '';
+          } else {
+            errorMessage.textContent = data.error || 'File upload failed';
+            successMessage.textContent = '';
+          }
+        } catch (error) {
+          console.error('Error during file upload', error);
+          errorMessage.textContent = 'An error occured during file upload';
+          successMessage.textContent = '';
+        }
+      };
+      // Read the file as Data URL triggering the onloaded event(above)
+      reader.readAsDataURL(file);
+    } else {
+      errorMessage.textContent = 'Please select a file to upload';
+      successMessage.textContent = '';
+    }
   });
 });
