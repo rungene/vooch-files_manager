@@ -77,7 +77,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   fileUploadForm.addEventListener('submit', async () => {
     event.preventDefault();
     const reader = new FileReader();
-    reader.onloaded = async funtion() {
+    reader.onloaded = async function() {
       const data = reader.result.split(',')[1];
 
       // Create a formData object, append form fields
@@ -96,9 +96,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             'X-Token': authToken,
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({
-            formData,
-          )}
+          body: formData
         });
 
         // Handle server response
