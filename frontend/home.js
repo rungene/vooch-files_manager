@@ -68,16 +68,18 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   const fileUploadForm = document.getElementById('file-upload-form');
-  const fileName = document.getElementById('file-name').value;
-  const fileType = document.getElementById('file-type').value;
-  const parentId = document.getElementById('parent-id').value || 0;
-  const isPublic = document.getElementById('is-public').checked;
-  const fileInput = document.getElementById('file-input');
   const successMessage = document.getElementById('success-message');
-  const file = fileInput.files[0];
 
   fileUploadForm.addEventListener('submit', async (event) => {
     event.preventDefault();
+
+    const fileName = document.getElementById('file-name').value;
+    const fileType = document.getElementById('file-type').value;
+    const parentId = document.getElementById('parent-id').value || 0;
+    const isPublic = document.getElementById('is-public').checked;
+    const fileInput = document.getElementById('file-input');
+    const file = fileInput.files[0];
+
     const reader = new FileReader();
     reader.onerror = (event) => {
       // Handle errors here
@@ -100,15 +102,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       reader.onload = async () => {
         const base64Data = reader.result.split(',')[1];
 
-        // Create a formData object, append form fields
-        const formData = new FormData();
-        formData.append('name', fileName);
-        formData.append('type', fileType);
-        formData.append('parentId', parentId);
-        formData.append('isPublic', isPublic);
-        formData.append('data', fileType === 'file' || fileType === 'image' ? base64Data : null);
-
-        // Make POST request to the server with the formData object
+        // Make POST request to the server with the json data
         try {
           const response = await fetch('/files', {
             method: 'POST',
@@ -116,13 +110,20 @@ document.addEventListener('DOMContentLoaded', async () => {
               'X-Token': authToken,
               'Content-Type': 'application/json',
             },
-            body: formData,
+            body: JSON.stringify({
+              name: fileName,
+              type: fileType,
+              parentId,
+              isPublic,
+              data: fileType === 'file' || fileType === 'image' ? base64Data : null,
+            }),
           });
 
           // Handle server response
           const data = await response.json();
 
           if (response.status === 201) {
+            fileUploadForm.reset();
             successMessage.textContent = 'File uploaded sucessfully';
             errorMessage.textContent = '';
           } else {
