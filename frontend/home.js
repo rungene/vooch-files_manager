@@ -1,3 +1,36 @@
+async function fetchFiles(parentId, page) {
+  const authToken = localStorage.getItem('authToken');
+  const apiUrl = `/files?parentId=${parentId}&page=${page}`;
+
+  try {
+    const response = await fetch(apiUrl, {
+      method: 'GET',
+      headers: {
+        'X-Token': authToken,
+        'Content-Type': 'application/json',
+      },
+    });
+    // Handle server response
+    const data = await response.json();
+    if (response.status === 200) {
+      console.log('Files retrived', data);
+    } else {
+      console.error('Error fetching files:');
+    }
+  } catch (error) {
+    console.error('Error during file retrival', error);
+  }
+}
+
+function populatePageDropdown(totalPages, pageDropdown) {
+  for (let i = 0; i < totalPages; i + 1) {
+    const option = document.createElement('option');
+    option.value = i;
+    option.textContent = `Page ${i + 1}`;
+    pageDropdown.appendChild(option);
+  }
+}
+
 async function getUserEmailFromToken(token) {
   try {
     const response = await fetch('/users/me', {
@@ -162,5 +195,31 @@ document.addEventListener('DOMContentLoaded', async () => {
       errorMessage.textContent = 'Please select a file to upload';
       successMessage.textContent = '';
     }
+  });
+  const prevButton = document.getElementById('prev-button');
+  const nextButton = document.getElementById('next-button');
+  const pageDropdown = document.getElementById('page-dropdown');
+  const totalPages = 10;
+  populatePageDropdown(totalPages, pageDropdown);
+  const parentId = 0;
+  let currentPage = 0;
+
+  prevButton.addEventListener('click', () => {
+    if (currentPage > 0) {
+      currentPage -= 1;
+      fetchFiles(parentId, currentPage);
+    }
+  });
+
+  nextButton.addEventListener('click', () => {
+    if (currentPage < totalPages - 1) {
+      currentPage += 1;
+      fetchFiles(parentId, currentPage);
+    }
+  });
+
+  pageDropdown.addEventListener('change', () => {
+    currentPage = parseInt(pageDropdown.value, 10);
+    fetchFiles(parentId, currentPage);
   });
 });
