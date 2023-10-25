@@ -69,18 +69,37 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   const fileUploadForm = document.getElementById('file-upload-form');
   const successMessage = document.getElementById('success-message');
+  const previewImg = document.getElementById('preview');
+  const fileInput = document.getElementById('file-input');
+
+  fileInput.addEventListener('change', () => {
+    const file = fileInput.files[0];
+    const reader = new FileReader();
+    if (/\.(jpe?g|png|gif)$/i.test(file.name)) {
+      reader.onload = () => {
+        const image = new Image();
+        image.height = 100;
+        image.title = file.name;
+        image.src = reader.result;
+        previewImg.innerHTML = '';
+        previewImg.appendChild(image);
+      };
+      reader.readAsDataURL(file);
+    } else {
+      previewImg.innerHTML = '';
+    }
+  });
 
   fileUploadForm.addEventListener('submit', async (event) => {
     event.preventDefault();
 
+    const reader = new FileReader();
     const fileName = document.getElementById('file-name').value;
     const fileType = document.getElementById('file-type').value;
     const parentId = document.getElementById('parent-id').value || 0;
     const isPublic = document.getElementById('is-public').checked;
-    const fileInput = document.getElementById('file-input');
     const file = fileInput.files[0];
 
-    const reader = new FileReader();
     reader.onerror = (event) => {
       // Handle errors here
       switch (event.target.error.code) {
@@ -124,6 +143,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
           if (response.status === 201) {
             fileUploadForm.reset();
+            previewImg.innerHTML = '';
             successMessage.textContent = 'File uploaded sucessfully';
             errorMessage.textContent = '';
           } else {
