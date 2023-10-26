@@ -23,7 +23,7 @@ async function fetchFiles(parentId, page) {
 }
 
 function populatePageDropdown(totalPages, pageDropdown) {
-  for (let i = 0; i < totalPages; i + 1) {
+  for (let i = 0; i < totalPages; i += 1) {
     const option = document.createElement('option');
     option.value = i;
     option.textContent = `Page ${i + 1}`;
@@ -203,6 +203,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   populatePageDropdown(totalPages, pageDropdown);
   const parentId = 0;
   let currentPage = 0;
+  fetchFiles(parentId, currentPage);
 
   prevButton.addEventListener('click', () => {
     if (currentPage > 0) {
