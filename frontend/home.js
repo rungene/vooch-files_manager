@@ -47,7 +47,16 @@ async function fetchFiles(parentId, page) {
           const image = document.createElement('img');
           image.src = imageUrl;
           image.alt = 'Image Preview';
+          const downloadBtn = document.createElement('button');
+          downloadBtn.textContent = 'Download';
+          downloadBtn.addEventListener('click', () => {
+            const a = document.createElement('a');
+            a.href = imageUrl;
+            a.download = file.name;
+            a.click();
+          });
           listItem.appendChild(image);
+          listItem.appendChild(downloadBtn);
         }
         fileList.appendChild(listItem);
       }));
