@@ -1,6 +1,6 @@
-async function absoluteFilePath(id, size) {
+async function absoluteFilePath(id) {
   const authToken = localStorage.getItem('authToken');
-  const apiUrl = `/files/${id}/data?size=${size}`;
+  const apiUrl = `/files/${id}/data`;
 
   try {
     const response = await fetch(apiUrl, {
@@ -11,11 +11,10 @@ async function absoluteFilePath(id, size) {
       },
     });
     // Server response
-    const data = await response.json();
     if (response.status === 200) {
-      return data.absoluteFilePath;
+      return response.blob();
     }
-    console.error('Error retrieving file Path');
+    console.error('Error retrieving file Path', response.status);
   } catch (error) {
     console.error('Error during path retrieval', error);
   }
@@ -41,11 +40,12 @@ async function fetchFiles(parentId, page) {
       await Promise.all(data.map(async (file) => {
         const listItem = document.createElement('li');
         listItem.textContent = `File name: ${file.name} Id: ${file.id} userId: ${file.userId} type: ${file.type} isPublic: ${file.isPublic} parentId: ${file.parentId}`;
-        const size = null;
-        const imgUrl = await absoluteFilePath(file.id, size);
-        if (file.type === 'image' && imgUrl) {
+        // const size = null;
+        const blob = await absoluteFilePath(file.id);
+        if (file.type === 'image' && blob) {
+          const imageUrl = URL.createObjectURL(blob);
           const image = document.createElement('img');
-          image.src = imgUrl;
+          image.src = imageUrl;
           image.alt = 'Image Preview';
           listItem.appendChild(image);
         }
