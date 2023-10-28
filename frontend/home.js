@@ -20,6 +20,35 @@ async function absoluteFilePath(id) {
   }
   return null;
 }
+function handleImageBlobs(file, blob, blobUrl, listItem) {
+  const image = document.createElement('img');
+  const spinner = document.getElementById('loading-spinner');
+  image.style.display = 'none';
+  image.src = blobUrl;
+  image.alt = 'Image Preview';
+  image.onload = () => {
+    spinner.style.display = 'none';
+    image.style.display = 'block';
+  };
+  image.onerror = () => {
+    spinner.style.display = 'none';
+    const errorImg = document.createElement('img');
+    errorImg.src = 'images/error-image.png';
+    errorImg.alt = 'Failed to Load Image';
+    listItem.appendChild(errorImg);
+  };
+  const downloadBtn = document.createElement('button');
+  downloadBtn.textContent = 'Download';
+  downloadBtn.addEventListener('click', () => {
+    const a = document.createElement('a');
+    a.href = blobUrl;
+    a.download = file.name;
+    a.click();
+  });
+  listItem.appendChild(image);
+  spinner.style.display = 'block';
+  listItem.appendChild(downloadBtn);
+}
 
 async function fetchFiles(parentId, page) {
   const authToken = localStorage.getItem('authToken');
@@ -37,42 +66,18 @@ async function fetchFiles(parentId, page) {
     const data = await response.json();
     if (response.status === 200) {
       const fileList = document.getElementById('file-list');
-      const spinner = document.getElementById('loading-spinner');
       await Promise.all(data.map(async (file) => {
         const listItem = document.createElement('li');
         listItem.textContent = `File name: ${file.name} Id: ${file.id} userId: ${file.userId} type: ${file.type} isPublic: ${file.isPublic} parentId: ${file.parentId}`;
         // const size = null;
         const blob = await absoluteFilePath(file.id);
+        const blobUrl = URL.createObjectURL(blob);
         if (file.type === 'image' && blob) {
-          const imageUrl = URL.createObjectURL(blob);
-          const image = document.createElement('img');
-          image.style.display = 'none';
-          image.src = imageUrl;
-          image.alt = 'Image Preview';
-          image.onload = () => {
-            spinner.style.display = 'none';
-            image.style.display = 'block';
-          };
-          image.onerror = () => {
-            spinner.style.display = 'none';
-            const errorImg = document.createElement('img');
-            errorImg.src = 'images/error-image.png';
-            errorImg.alt = 'Failed to Load Image';
-            listItem.appendChild(errorImg);
-          };
-          const downloadBtn = document.createElement('button');
-          downloadBtn.textContent = 'Download';
-          downloadBtn.addEventListener('click', () => {
-            const a = document.createElement('a');
-            a.href = imageUrl;
-            a.download = file.name;
-            a.click();
-          });
-          listItem.appendChild(image);
-          listItem.appendChild(downloadBtn);
+          handleImageBlobs(file, blob, blobUrl, listItem);
+        } else {
+          // handle other file types
         }
         fileList.appendChild(listItem);
-        spinner.style.display = 'block';
       }));
       console.log('Files retrieved', data);
     } else {
