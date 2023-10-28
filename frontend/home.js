@@ -79,7 +79,7 @@ async function fetchFiles(parentId, page) {
         }
         fileList.appendChild(listItem);
       }));
-      console.log('Files retrieved', data);
+      // console.log('Files retrieved', data);
     } else {
       console.error('Error fetching files:');
     }
