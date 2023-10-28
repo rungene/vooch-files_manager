@@ -37,6 +37,7 @@ async function fetchFiles(parentId, page) {
     const data = await response.json();
     if (response.status === 200) {
       const fileList = document.getElementById('file-list');
+      const spinner = document.getElementById('loading-spinner');
       await Promise.all(data.map(async (file) => {
         const listItem = document.createElement('li');
         listItem.textContent = `File name: ${file.name} Id: ${file.id} userId: ${file.userId} type: ${file.type} isPublic: ${file.isPublic} parentId: ${file.parentId}`;
@@ -45,8 +46,20 @@ async function fetchFiles(parentId, page) {
         if (file.type === 'image' && blob) {
           const imageUrl = URL.createObjectURL(blob);
           const image = document.createElement('img');
+          image.style.display = 'none';
           image.src = imageUrl;
           image.alt = 'Image Preview';
+          image.onload = () => {
+            spinner.style.display = 'none';
+            image.style.display = 'block';
+          };
+          image.onerror = () => {
+            spinner.style.display = 'none';
+            const errorImg = document.createElement('img');
+            errorImg.src = 'images/error-image.png';
+            errorImg.alt = 'Failed to Load Image';
+            listItem.appendChild(errorImg);
+          };
           const downloadBtn = document.createElement('button');
           downloadBtn.textContent = 'Download';
           downloadBtn.addEventListener('click', () => {
@@ -59,6 +72,7 @@ async function fetchFiles(parentId, page) {
           listItem.appendChild(downloadBtn);
         }
         fileList.appendChild(listItem);
+        spinner.style.display = 'block';
       }));
       console.log('Files retrieved', data);
     } else {
