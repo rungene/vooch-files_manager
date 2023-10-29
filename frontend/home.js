@@ -20,7 +20,7 @@ async function absoluteFilePath(id) {
   }
   return null;
 }
-function handleImageBlobs(file, blob, blobUrl, listItem) {
+function handleImageBlobs(file, blobUrl, listItem) {
   const image = document.createElement('img');
   const spinner = document.getElementById('loading-spinner');
   image.style.display = 'none';
@@ -50,6 +50,13 @@ function handleImageBlobs(file, blob, blobUrl, listItem) {
   listItem.appendChild(downloadBtn);
 }
 
+function handleFileBlobs(file, blobUrl, listItem) {
+  const a = document.createElement('a');
+  a.href = blobUrl;
+  a.download = file.name;
+  a.textContent = 'Download File';
+  listItem.appendChild(a);
+}
 async function fetchFiles(parentId, page) {
   const authToken = localStorage.getItem('authToken');
   const apiUrl = `/files?parentId=${parentId}&page=${page}`;
@@ -73,9 +80,10 @@ async function fetchFiles(parentId, page) {
         const blob = await absoluteFilePath(file.id);
         const blobUrl = URL.createObjectURL(blob);
         if (file.type === 'image' && blob) {
-          handleImageBlobs(file, blob, blobUrl, listItem);
+          handleImageBlobs(file, blobUrl, listItem);
         } else {
           // handle other file types
+          handleFileBlobs(file, blobUrl, listItem);
         }
         fileList.appendChild(listItem);
       }));
