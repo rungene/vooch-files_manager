@@ -201,11 +201,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     event.preventDefault();
 
     const reader = new FileReader();
-    const fileName = document.getElementById('file-name').value;
+    let fileName = document.getElementById('file-name').value;
     const fileType = document.getElementById('file-type').value;
     const parentId = document.getElementById('parent-id').value || 0;
     const isPublic = document.getElementById('is-public').checked;
     const file = fileInput.files[0];
+    const fileExt = file.name.split('.').pop();
+    fileName = `${fileName}.${fileExt}`;
 
     reader.onerror = (event) => {
       // Handle errors here
