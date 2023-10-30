@@ -57,6 +57,32 @@ function handleFileBlobs(file, blobUrl, listItem) {
   a.textContent = 'Download File';
   listItem.appendChild(a);
 }
+
+async function fetchFile(id) {
+  const authToken = localStorage.getItem('authToken');
+  const apiUrl = `/files/${id}`;
+
+  try {
+    const response = await fetch(apiUrl, {
+      method: 'GET',
+      headers: {
+        'X-Token': authToken,
+        'Content-Type': 'application/json',
+      },
+    });
+    const data = await response.json();
+    if (response.status === 200) {
+      console.log('Document retrieved successfuly', data);
+      return data;
+    }
+    console.error('Error fetching files', data.error);
+    return null;
+  } catch (error) {
+    console.error('Error retrieving document:', error);
+  }
+  return null;
+}
+
 async function fetchFiles(parentId, page) {
   const authToken = localStorage.getItem('authToken');
   const apiUrl = `/files?parentId=${parentId}&page=${page}`;
