@@ -3,7 +3,7 @@ import { tmpdir } from 'os';
 import { promisify } from 'util';
 import { v4 as uuidv4 } from 'uuid';
 import {
-  mkdir, writeFile, stat, existsSync, realpath,
+  mkdir, writeFile, stat, existsSync, realpath, unlink,
 } from 'fs';
 import { join as joinPath } from 'path';
 import { contentType } from 'mime-types';
@@ -21,6 +21,7 @@ const mkDirAsync = promisify(mkdir);
 const writeFileAsync = promisify(writeFile);
 const statAsync = promisify(stat);
 const realpathAsync = promisify(realpath);
+const unlinkAsync = promisify(unlink);
 const fileQueue = new Queue('generating-thumbnails');
 const isValidId = (id) => {
   const size = 24;
@@ -341,5 +342,122 @@ export default class FilesController {
     const absoluteFilePath = await realpathAsync(filePath);
     res.setHeader('Content-Type', contentType(file.name) || 'text/plain; charset=utf-8');
     return res.status(200).sendFile(absoluteFilePath);
+  }
+
+  /**
+   * Updates a file
+   * @param {req} Request, the express request object
+   * @param {res} Result, the express result object.
+   */
+  static async postUpdate(req, res) {
+    const xToken = req.header('X-Token');
+    if (!xToken) {
+      return res.status(401).send({ error: 'Unauthorized' });
+    }
+    const key = `auth_${xToken}`;
+    const userId = await redisClient.get(key);
+    if (!userId) {
+      return res.status(401).send({ error: 'Unauthorized' });
+    }
+    // const userObj = await (await dbClient.usersCollection()).findOne({ _id: ObjectId(userId) });
+    const name = req.body ? req.body.name : null;
+    const type = req.body ? req.body.type : null;
+    const parentId = req.body && req.body.parentId ? req.body.parentId : ROOT_FOLDER_ID;
+    const isPublic = req.body && req.body.isPublic ? req.body.isPublic : false;
+    const data = req.body && req.body.data ? req.body.data : '';
+    const updateId = req.params ? req.params.id : NULL_ID;
+
+    if (!name) {
+      return res.status(400).send({ error: 'Missing name' });
+    }
+    if (!type || !Object.values(acceptedType).includes(type)) {
+      return res.status(400).send({ error: 'Missing type' });
+    }
+    if (!data && type !== acceptedType.folder) {
+      return res.status(400).send({ error: 'Missing data' });
+    }
+    if ((parentId !== ROOT_FOLDER_ID && parentId !== ROOT_FOLDER_ID.toString())) {
+      const file = await (await dbClient.filesCollection())
+        .findOne({
+          _id: new mongoDBCore.BSON.ObjectId(isValidId(parentId) ? parentId : NULL_ID),
+        });
+      if (!file) {
+        return res.status(400).send({ error: 'Parent not found' });
+      }
+      if (file.type !== acceptedType.folder) {
+        return res.status(400).send({ error: 'Parent is not a folder' });
+      }
+    }
+    const baseDir = `${process.env.FOLDER_PATH || ''}`.trim().length > 0
+      ? process.env.FOLDER_PATH.trim()
+      : joinPath(tmpdir(), DEFAULT_ROOT_FOLDER);
+
+    const newFile = {
+      userId: new mongoDBCore.BSON.ObjectId(userId),
+      name,
+      type,
+      isPublic,
+      parentId: (parentId === ROOT_FOLDER_ID) || (parentId === ROOT_FOLDER_ID.toString())
+        ? '0'
+        : new mongoDBCore.BSON.ObjectId(parentId),
+    };
+    await mkDirAsync(baseDir, { recursive: true });
+    if (type !== acceptedType.folder) {
+      const localPath = joinPath(baseDir, uuidv4());
+      // Decode Base64 and write it to the local file
+      const decodedData = Buffer.from(data, 'base64');
+      await writeFileAsync(localPath, decodedData);
+      newFile.localPath = localPath;
+    }
+    const file = await (await dbClient.filesCollection())
+      .findOne({
+        _id: new mongoDBCore.BSON.ObjectId(isValidId(updateId) ? updateId : NULL_ID),
+      });
+    const previousLocalPath = file ? file.localPath : null;
+    await (await dbClient.filesCollection())
+      .updateOne({
+        _id: new mongoDBCore.BSON.ObjectId(updateId),
+        $or: [
+          { userId: { $ne: newFile.userId } },
+          { name: { $ne: newFile.name } },
+          { type: { $ne: newFile.type } },
+          { isPublic: { $ne: newFile.isPublic } },
+          { parentId: { $ne: newFile.parentId } },
+          { localPath: { $ne: newFile.localPath } },
+        ],
+      },
+      {
+        $set: {
+          userId: newFile.userId,
+          name: newFile.name,
+          type: newFile.type,
+          isPublic: newFile.isPublic,
+          parentId: newFile.parentId,
+          localPath: newFile.localPath,
+        },
+      });
+    if (previousLocalPath) {
+      try {
+        await unlinkAsync(previousLocalPath);
+        console.log(`Previous file deleted: ${previousLocalPath}`);
+      } catch (error) {
+        console.error(`Error deleting previous file: ${error.message}`);
+      }
+    }
+    const fileId = updateId;
+    if (type === acceptedType.image) {
+      const jobName = `Image thumbnail [${userId}-${fileId}]`;
+      fileQueue.add({ userId, fileId, name: jobName });
+    }
+    return res.status(201).json({
+      id: fileId,
+      userId,
+      name,
+      type,
+      isPublic,
+      parentId: (parentId === ROOT_FOLDER_ID) || (parentId === ROOT_FOLDER_ID.toString())
+        ? 0
+        : parentId,
+    });
   }
 }

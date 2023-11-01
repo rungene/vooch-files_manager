@@ -83,6 +83,42 @@ async function fetchFile(id) {
   return null;
 }
 
+function updateFormFields(fileData) {
+  document.getElementById('file-name').value = fileData.name;
+  document.getElementById('file-type').value = fileData.type;
+  document.getElementById('parent-id').value = fileData.parentId;
+  document.getElementById('is-public').checked = fileData.isPublic;
+  document.getElementById('file-id').value = fileData.id;
+}
+
+async function updateFormWithFileData(fileId) {
+  try {
+    const existingFileData = await fetchFile(fileId);
+    if (existingFileData) {
+      updateFormFields(existingFileData);
+      document.getElementById('file-upload-form').scrollIntoView({ behavior: 'smooth' });
+    } else {
+      console.error('Unable to fetch file data');
+    }
+  } catch (error) {
+    console.error('Error while updating form with file data:', error);
+  }
+}
+
+async function updateBtn(idFile, listItem) {
+  const updateButton = document.createElement('button');
+  updateButton.textContent = 'Update';
+  updateButton.addEventListener('click', async () => {
+    const fileId = idFile;
+    if (fileId) {
+      updateFormWithFileData(fileId);
+    } else {
+      console.error('File Id required for updating');
+    }
+  });
+  listItem.appendChild(updateButton);
+}
+
 async function fetchFiles(parentId, page) {
   const authToken = localStorage.getItem('authToken');
   const apiUrl = `/files?parentId=${parentId}&page=${page}`;
@@ -103,6 +139,8 @@ async function fetchFiles(parentId, page) {
         const listItem = document.createElement('li');
         listItem.textContent = `File name: ${file.name} Id: ${file.id} userId: ${file.userId} type: ${file.type} isPublic: ${file.isPublic} parentId: ${file.parentId}`;
         // const size = null;
+        // const idFile = file.id;
+        // updateBtn(idFile, listItem);
         const blob = await absoluteFilePath(file.id);
         const blobUrl = URL.createObjectURL(blob);
         if (file.type === 'image' && blob) {
@@ -111,6 +149,7 @@ async function fetchFiles(parentId, page) {
           // handle other file types
           handleFileBlobs(file, blobUrl, listItem);
         }
+        updateBtn(file.id, listItem);
         fileList.appendChild(listItem);
       }));
       // console.log('Files retrieved', data);
@@ -152,7 +191,34 @@ async function getUserEmailFromToken(token) {
     return 'Error occured during email retrieval';
   }
 }
+async function logout(logoutBtn, authToken) {
+  const errorMessage = document.getElementById('error-message');
+  logoutBtn.addEventListener('click', async () => {
+    try {
+      const response = await fetch('/disconnect', {
+        method: 'POST',
+        headers: {
+          'X-Token': authToken,
+          'Content-Type': 'application/json',
+        },
+      });
 
+      if (response.status === 204) {
+        // Logout success
+        console.log('User logged out successfully');
+        localStorage.removeItem('authToken');
+        window.location.href = '/login.html';
+      } else {
+        // Logout failed
+        errorMessage.textContent = 'Logout failed';
+        console.log('Logout failed');
+      }
+    } catch (error) {
+      console.error('Error during logout:', error);
+      errorMessage.textContent = 'An error occurred during logout';
+    }
+  });
+}
 document.addEventListener('DOMContentLoaded', async () => {
   const userEmail = document.getElementById('user-email-home');
   const logoutBtn = document.getElementById('logout-btn');
@@ -168,32 +234,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   try {
     const userEmailFromToken = await getUserEmailFromToken(authToken);
     userEmail.textContent = userEmailFromToken;
-
-    logoutBtn.addEventListener('click', async () => {
-      try {
-        const response = await fetch('/disconnect', {
-          method: 'POST',
-          headers: {
-            'X-Token': authToken,
-            'Content-Type': 'application/json',
-          },
-        });
-
-        if (response.status === 204) {
-          // Logout success
-          console.log('User logged out successfully');
-          localStorage.removeItem('authToken');
-          window.location.href = '/login.html';
-        } else {
-          // Logout failed
-          errorMessage.textContent = 'Logout failed';
-          console.log('Logout failed');
-        }
-      } catch (error) {
-        console.error('Error during logout:', error);
-        errorMessage.textContent = 'An error occurred during logout';
-      }
-    });
+    logout(logoutBtn, authToken);
   } catch (error) {
     // Handle error while retrieving user email (e.g., redirect to login page)
     console.error('Error retrieving user email:', error);
@@ -222,7 +263,6 @@ document.addEventListener('DOMContentLoaded', async () => {
       previewImg.innerHTML = '';
     }
   });
-
   fileUploadForm.addEventListener('submit', async (event) => {
     event.preventDefault();
 
@@ -231,6 +271,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     const fileType = document.getElementById('file-type').value;
     const parentId = document.getElementById('parent-id').value || 0;
     const isPublic = document.getElementById('is-public').checked;
+    const fileId = document.getElementById('file-id').value;
     const file = fileInput.files[0];
     const fileExt = file.name.split('.').pop();
     fileName = `${fileName}.${fileExt}`;
@@ -255,10 +296,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (file) {
       reader.onload = async () => {
         const base64Data = reader.result.split(',')[1];
+        const apiEndpoint = fileId ? `/files/${fileId}` : '/files';
 
         // Make POST request to the server with the json data
         try {
-          const response = await fetch('/files', {
+          const response = await fetch(apiEndpoint, {
             method: 'POST',
             headers: {
               'X-Token': authToken,
