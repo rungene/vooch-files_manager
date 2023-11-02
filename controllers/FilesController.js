@@ -459,4 +459,49 @@ export default class FilesController {
         : parentId,
     });
   }
+
+  /**
+   * Delets a file
+   * @param {req} Request, the express request object
+   * @param {res} Result, the express result object.
+   */
+  static async postDelete(req, res) {
+    const xToken = req.header('X-Token');
+    if (!xToken) {
+      return res.status(401).send({ error: 'Unauthorized' });
+    }
+    const key = `auth_${xToken}`;
+    const userId = await redisClient.get(key);
+    if (!userId) {
+      return res.status(401).send({ error: 'Unauthorized' });
+    }
+    const deleteId = req.params ? req.params.id : NULL_ID;
+
+    const file = await (await dbClient.filesCollection())
+      .findOne({
+        _id: new mongoDBCore.BSON.ObjectId(isValidId(deleteId) ? deleteId : NULL_ID),
+      });
+    const previousLocalPath = file ? file.localPath : null;
+    const deleteResult = await (await dbClient.filesCollection())
+      .deleteOne({
+        _id: new mongoDBCore.BSON.ObjectId(isValidId(deleteId) ? deleteId : NULL_ID),
+        userId: new mongoDBCore.BSON.ObjectId(isValidId(userId) ? userId : NULL_ID),
+      });
+    if (previousLocalPath) {
+      try {
+        await unlinkAsync(previousLocalPath);
+      } catch (error) {
+        console.error(`Error deleting previous file: ${error.message}`);
+      }
+    }
+    if (deleteResult.deletedCount > 0) {
+      const fileId = deleteId;
+      return res.status(200).json({
+        success: `${fileId} Deleted Successfully`,
+      });
+    }
+    return res.status(404).json({
+      error: 'File not found',
+    });
+  }
 }
