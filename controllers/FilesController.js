@@ -439,7 +439,6 @@ export default class FilesController {
     if (previousLocalPath) {
       try {
         await unlinkAsync(previousLocalPath);
-        console.log(`Previous file deleted: ${previousLocalPath}`);
       } catch (error) {
         console.error(`Error deleting previous file: ${error.message}`);
       }
