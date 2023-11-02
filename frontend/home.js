@@ -21,8 +21,13 @@ async function absoluteFilePath(id) {
   return null;
 }
 function handleImageBlobs(file, blobUrl, listItem) {
+  const imageContainer = document.createElement('div');
   const image = document.createElement('img');
   const spinner = document.getElementById('loading-spinner');
+  const fixedWidth = 200;
+  const fixedHeight = 150;
+  image.style.width = `${fixedWidth}px`;
+  image.style.height = `${fixedHeight}px`;
   image.style.display = 'none';
   image.src = blobUrl;
   image.alt = 'Image Preview';
@@ -45,9 +50,11 @@ function handleImageBlobs(file, blobUrl, listItem) {
     a.download = file.name;
     a.click();
   });
-  listItem.appendChild(image);
-  spinner.style.display = 'block';
+  imageContainer.appendChild(image);
+  listItem.appendChild(imageContainer);
   listItem.appendChild(downloadBtn);
+  // display the spinner initially
+  spinner.style.display = 'block';
 }
 
 function handleFileBlobs(file, blobUrl, listItem) {
@@ -176,7 +183,9 @@ async function fetchFiles(parentId, page) {
     if (response.status === 200) {
       const fileList = document.getElementById('file-list');
       await Promise.all(data.map(async (file) => {
+        const divItem = document.createElement('div');
         const listItem = document.createElement('li');
+        divItem.classList.add('file-item');
         listItem.textContent = `File name: ${file.name} Id: ${file.id} userId: ${file.userId} type: ${file.type} isPublic: ${file.isPublic} parentId: ${file.parentId}`;
         // const size = null;
         // const idFile = file.id;
@@ -191,7 +200,8 @@ async function fetchFiles(parentId, page) {
         }
         updateBtn(file.id, listItem);
         deleteBtn(file.id, listItem);
-        fileList.appendChild(listItem);
+        divItem.appendChild(listItem);
+        fileList.appendChild(divItem);
       }));
       // console.log('Files retrieved', data);
     } else {
