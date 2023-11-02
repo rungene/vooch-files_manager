@@ -119,6 +119,46 @@ async function updateBtn(idFile, listItem) {
   listItem.appendChild(updateButton);
 }
 
+async function deleteBtn(id, listItem) {
+  const authToken = localStorage.getItem('authToken');
+  const apiUrl = `/files/${id}`;
+  const confirmationModal = document.getElementById('confirmationModal');
+  const confirmDelBtn = document.getElementById('confirmDelete');
+  const cancelDelBtn = document.getElementById('cancelDelete');
+  const deleteButton = document.createElement('button');
+  const errorMessage = document.getElementById('error-message');
+  const successMessage = document.getElementById('success-message');
+  deleteButton.textContent = 'Delete';
+  deleteButton.addEventListener('click', async () => {
+    confirmationModal.style.display = 'block';
+    confirmDelBtn.addEventListener('click', async () => {
+      try {
+        const response = await fetch(apiUrl, {
+          method: 'DELETE',
+          headers: {
+            'X-Token': authToken,
+            'Content-Type': 'application/json',
+          },
+        });
+        if (response.status === 200) {
+          successMessage.text = 'File deleted successfully';
+          errorMessage.text = '';
+        } else {
+          errorMessage.textContent = 'Failed to delete file';
+          successMessage.textContent = '';
+        }
+      } catch (error) {
+        console.error('Error occured', error);
+      }
+      confirmationModal.style.display = 'none';
+    });
+    cancelDelBtn.addEventListener('click', () => {
+      confirmationModal.style.display = 'none';
+    });
+  });
+  listItem.appendChild(deleteButton);
+}
+
 async function fetchFiles(parentId, page) {
   const authToken = localStorage.getItem('authToken');
   const apiUrl = `/files?parentId=${parentId}&page=${page}`;
@@ -150,6 +190,7 @@ async function fetchFiles(parentId, page) {
           handleFileBlobs(file, blobUrl, listItem);
         }
         updateBtn(file.id, listItem);
+        deleteBtn(file.id, listItem);
         fileList.appendChild(listItem);
       }));
       // console.log('Files retrieved', data);
